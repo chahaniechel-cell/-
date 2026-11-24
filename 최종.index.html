@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>건축구조기술사 PRO 퀴즈</title>
+<style>
+  :root {
+    --primary: #1e3a8a;
+    --primary-light: #3b82f6;
+    --pro-gold: #f59e0b;
+    --pro-bg: #fffbeb;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --danger: #ef4444;
+    --success: #10b981;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--text); display: flex; justify-content: center; }
+  .app-container { width: 100%; max-width: 430px; min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; position: relative; padding-bottom: 80px; }
+  
+  /* 상단 헤더 */
+  header { background: var(--primary); color: #fff; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .app-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; user-select: none; cursor: pointer; }
+  .badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; }
+  .badge-free { background: rgba(255,255,255,0.2); color: #fff; }
+  .badge-pro { background: var(--pro-gold); color: #1e293b; }
+  .badge-dev { background: #10b981; color: #fff; }
+
+  /* 배너 및 상태바 */
+  .pro-banner { margin: 16px; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(15,23,42,0.15); }
+  .pro-banner h3 { margin: 0 0 4px 0; font-size: 15px; color: var(--pro-gold); }
+  .pro-banner p { margin: 0; font-size: 12px; color: #cbd5e1; }
+  .btn-upgrade { background: var(--pro-gold); color: #0f172a; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
+
+  /* 탭 메뉴 */
+  .tabs { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 12px; overflow-x: auto; }
+  .tab { flex: 1; text-align: center; padding: 10px 8px; background: var(--card); border-radius: 10px; font-size: 13px; font-weight: 700; color: var(--muted); border: 1px solid #e2e8f0; cursor: pointer; position: relative; }
+  .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .lock-icon { font-size: 11px; margin-left: 3px; }
+
+  /* 카드 & 문제 영역 */
+  .card { background: var(--card); margin: 0 16px 16px; padding: 20px; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+  .q-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--primary-light); font-weight: 700; margin-bottom: 8px; }
+  .q-text { font-size: 16px; font-weight: 700; line-height: 1.5; margin-bottom: 16px; }
+  .formula-box { background: #f8fafc; border-left: 4px solid var(--primary-light); padding: 12px; font-family: monospace; font-size: 14px; margin-bottom: 16px; border-radius: 0 8px 8px 0; }
+  
+  .option-btn { width: 100%; text-align: left; padding: 14px 16px; margin-bottom: 10px; border-radius: 12px; border: 1.5px solid #e2e8f0; background: #fff; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; transition: 0.15s; }
+  .option-btn.correct { border-color: var(--success); background: #ecfdf5; color: #065f46; }
+  .option-btn.wrong { border-color: var(--danger); background: #fef2f2; color: #991b1b; }
+
+  .blank-input { width: 100%; padding: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px; font-size: 15px; margin-bottom: 12px; }
+  .btn-primary { width: 100%; padding: 14px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+  .explanation { margin-top: 14px; padding: 14px; background: #f8fafc; border-radius: 10px; font-size: 13px; line-height: 1.5; color: #334155; display: none; }
+
+  /* 모달 (유료 결제 & 개발자 인증) */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.65); display: none; justify-content: center; align-items: flex-end; z-index: 50; }
+  .modal-sheet { width: 100%; max-width: 430px; background: #fff; border-radius: 24px 24px 0 0; padding: 24px 20px 36px; animation: slideUp 0.25s ease-out; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .plan-card { border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .plan-card.selected { border-color: var(--pro-gold); background: var(--pro-bg); }
+  .plan-price { font-size: 17px; font-weight: 800; color: var(--primary); }
+
+  /* 개발자 전용 패널 */
+  .dev-panel { display: none; margin: 0 16px 16px; padding: 14px; background: #ecfdf5; border: 1.5px dashed #10b981; border-radius: 12px; font-size: 13px; }
+  .dev-panel button { background: #059669; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; margin-top: 8px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- 상단 헤더 (타이틀 5회 터치 시 개발자 모드 오픈) -->
+  <header>
+    <div class="app-title" id="appTitle">건축구조기술사 MASTER</div>
+    <span class="badge badge-free" id="statusBadge">FREE 회원</span>
+  </header>
+
+  <!-- 개발자 전용 컨트롤 패널 -->
+  <div class="dev-panel" id="devPanel">
+    <strong>🛠 개발자 마스터 모드 활성화됨</strong><br>
+    모든 유료(PRO) 기능 및 기출문제가 무료로 잠금 해제되었습니다.
+    <div>
+      <button onclick="resetToFree()">일반 무료회원으로 테스트 전환</button>
+    </div>
+  </div>
+
+  <!-- 유료 업그레이드 유도 배너 -->
+  <div class="pro-banner" id="proBanner">
+    <div>
+      <h3>PRO 패스 잠금 해제</h3>
+      <p>KDS 최신 기출 · 빈칸암기 · 자동 오답노트</p>
+    </div>
+    <button class="btn-upgrade" onclick="openPayModal()">업그레이드</button>
+  </div>
+
+  <!-- 학습 모드 탭 -->
+  <div class="tabs">
+    <div class="tab active" data-mode="choice" onclick="switchMode('choice')">4지선다</div>
+    <div class="tab" data-mode="blank" onclick="switchMode('blank')">빈칸암기 <span class="lock-icon" id="lockBlank">🔒</span></div>
+    <div class="tab" data-mode="wrong" onclick="switchMode('wrong')">오답노트 <span class="lock-icon" id="lockWrong">🔒</span></div>
+  </div>
+
+  <!-- 메인 퀴즈 카드 -->
+  <div class="card" id="quizCard">
+    <div class="q-meta">
+      <span id="qCategory">철근콘크리트 (KDS 14 20)</span>
+      <span id="qNumber">1 / 4</span>
+    </div>
+    <div class="q-text" id="qText">문제를 불러오는 중...</div>
+    <div class="formula-box" id="qFormula" style="display:none;"></div>
+    
+    <div id="answerArea"></div>
+    <div class="explanation" id="qExplanation"></div>
+    
+    <button class="btn-primary" id="nextBtn" style="margin-top:16px; display:none;" onclick="nextQuestion()">다음 문제 →</button>
+  </div>
+</div>
+
+<!-- 유료 결제 모달 (일반 사용자용) -->
+<div class="modal-backdrop" id="payModal" onclick="closeModal(event, 'payModal')">
+  <div class="modal-sheet">
+    <h2 style="margin:0 0 6px 0; font-size:20px;">건축구조기술사 PRO 멤버십</h2>
+    <p style="margin:0 0 18px 0; font-size:13px; color:var(--muted);">합격을 앞당기는 전체 기출 DB와 암기 모드를 제한 없이 이용하세요.</p>
+    
+    <div class="plan-card selected" onclick="selectPlan(this, 'lifetime')">
+      <div>
+        <div style="font-weight:800; font-size:15px;">평생 소장 패스 <span style="color:#d97706; font-size:12px;">(인기)</span></div>
+        <div style="font-size:12px; color:var(--muted);">1회 결제로 합격까지 무제한 이용</div>
+      </div>
+      <div class="plan-price">₩49,000</div>
+    </div>
+
+    <div class="plan-card" onclick="selectPlan(this, 'monthly')">
+      <div>
+        <div style="font-weight:800; font-size:15px;">월간 정기 구독</div>
+        <div style="font-size:12px; color:var(--muted);">언제든 해지 가능 · 전 과목 해제</div>
+      </div>
+      <div class="plan-price">₩9,900/월</div>
+    </div>
+
+    <button class="btn-primary" style="background:var(--pro-gold); color:#0f172a; margin-top:8px;" onclick="completePurchase()">Apple 인앱 결제로 시작하기</button>
+  </div>
+</div>
+
+<!-- 개발자 인증 모달 -->
+<div class="modal-backdrop" id="devModal" onclick="closeModal(event, 'devModal')">
+  <div class="modal-sheet">
+    <h3 style="margin:0 0 8px 0;">🔐 개발자 마스터 인증</h3>
+    <p style="margin:0 0 14px 0; font-size:13px; color:var(--muted);">개발자 전용 패스코드(1234)를 입력하면 결제 없이 PRO 권한이 부여됩니다.</p>
+    <input type="password" id="devCodeInput" class="blank-input" placeholder="마스터 코드 입력 (1234)">
+    <button class="btn-primary" onclick="verifyDevCode()">개발자 권한 활성화</button>
+  </div>
+</div>
+
+<script>
+  // 기출문제 데이터베이스 (isPro: true 는 유료회원/개발자 전용)
+  const questions = [
+    {
+      id: 1,
+      category: "구조역학 · 에너지법",
+      isPro: false,
+      text: "탄성 변형에너지(U)를 하중 P로 편미분하면 해당 하중 작용점의 하중 방향 변위가 된다는 정리는?",
+      formula: "δ_i = ∂U / ∂P_i",
+      options: ["카스틸리아노 제2정리", "맥스웰의 상반정리", "베티의 정리", "모어의 모멘트면적법"],
+      answer: 0,
+      blankAnswer: "카스틸리아노 제2정리",
+      explanation: "카스틸리아노(Castigliano) 제2정리는 선형 탄성체에서 변형에너지를 외력으로 편미분하면 그 외력 방향의 변위가 산출된다는 원리입니다."
+    },
+    {
+      id: 2,
+      category: "철근콘크리트 (KDS 14 20)",
+      isPro: false,
+      text: "단철근 직사각형 보에서 균형철근비(ρ_b)를 산정할 때 최외단 압축연단 콘크리트의 극한변형률(ε_cu) 기준값은?",
+      formula: "ε_cu = 0.003 (KDS 14 20 20)",
+      options: ["0.002", "0.003", "0.0035", "0.005"],
+      answer: 1,
+      blankAnswer: "0.003",
+      explanation: "KDS 14 20 20 강도설계법 기본 가정에 따라 콘크리트 압축연단의 극한변형률은 0.003을 적용합니다."
+    },
+    {
+      id: 3,
+      category: "내진설계 (KDS 41 17) [PRO]",
+      isPro: true,
+      text: "내진설계에서 지진력저항시스템의 비탄성 거동 능력을 반영하여 탄성지진력을 저감시키는 계수는?",
+      formula: "V = (S_DS / (R / I_E)) × W",
+      options: ["반응수정계수(R)", "시스템초과강도계수(Ω_0)", "변위증폭계수(C_d)", "중요도계수(I_E)"],
+      answer: 0,
+      blankAnswer: "반응수정계수",
+      explanation: "반응수정계수(R)는 구조물의 연성, 초과강도, 감쇠 능력을 종합하여 탄성설계지진력을 줄여주는 핵심 계수입니다."
+    },
+    {
+      id: 4,
+      category: "PSC 공학 [PRO]",
+      isPro: true,
+      text: "포스트텐션 부재에서 긴장재 정착 직후 정착장치의 활동으로 인해 발생하는 즉시 손실 원인은?",
+      formula: "Δf_pA = (ΔL / L) × E_p",
+      options: ["정착장치 활동(Activity)", "콘크리트 크리프", "콘크리트 건조수축", "PS 강재의 릴랙세이션"],
+      answer: 0,
+      blankAnswer: "정착장치 활동",
+      explanation: "정착장치 활동(활동량 ΔL)과 탄성수축, 마찰손실은 긴장 작업 시 발생하는 즉시손실이며, 크리프·건조수축·릴랙세이션은 장기손실입니다."
+    }
+  ];
+
+  // 상태 관리 (localStorage에 권한 저장)
+  let userRole = localStorage.getItem('userRole') || 'free'; // 'free' | 'pro' | 'dev'
+  let currentMode = 'choice';
+  let currentIndex = 0;
+  let wrongList = JSON.parse(localStorage.getItem('wrongList') || '[]');
+  let titleTapCount = 0;
+  let tapTimer = null;
+
+  // 타이틀 5연속 터치 감지 (개발자 히든 트리거)
+  document.getElementById('appTitle').addEventListener('click', () => {
+    titleTapCount++;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { titleTapCount = 0; }, 1500);
+    if (titleTapCount >= 5) {
+      titleTapCount = 0;
+      document.getElementById('devModal').style.display = 'flex';
+    }
+  });
+
+  function updateUIByRole() {
+    const badge = document.getElementById('statusBadge');
+    const banner = document.getElementById('proBanner');
+    const devPanel = document.getElementById('devPanel');
+    const isUnlocked = (userRole === 'pro' || userRole === 'dev');
+
+    if (userRole === 'dev') {
+      badge.className = 'badge badge-dev';
+      badge.textContent = 'DEV 마스터';
+      banner.style.display = 'none';
+      devPanel.style.display = 'block';
+    } else if (userRole === 'pro') {
+      badge.className = 'badge badge-pro';
+      badge.textContent = 'PRO 회원';
+      banner.style.display = 'none';
+      devPanel.style.display = 'none';
+    } else {
+      badge.className = 'badge badge-free';
+      badge.textContent = 'FREE 회원';
+      banner.style.display = 'flex';
+      devPanel.style.display = 'none';
+    }
+
+    document.getElementById('lockBlank').style.display = isUnlocked ? 'none' : 'inline';
+    document.getElementById('lockWrong').style.display = isUnlocked ? 'none' : 'inline';
+    renderQuestion();
+  }
+
+  function switchMode(mode) {
+    const isUnlocked = (userRole === 'pro' || userRole === 'dev');
+    if ((mode === 'blank' || mode === 'wrong') && !isUnlocked) {
+      openPayModal();
+      return;
+    }
+    currentMode = mode;
+    currentIndex = 0;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const isUnlocked = (userRole === 'pro' || userRole === 'dev');
+    let pool = questions;
+    if (currentMode === 'wrong') {
+      pool = questions.filter(q => wrongList.includes(q.id));
+      if (pool.length === 0) {
+        document.getElementById('qCategory').textContent = "오답노트";
+        document.getElementById('qNumber').textContent = "0 / 0";
+        document.getElementById('qText').textContent = "저장된 오답이 없습니다. 문제를 풀고 틀린 문제를 복습해 보세요!";
+        document.getElementById('qFormula').style.display = 'none';
+        document.getElementById('answerArea').innerHTML = '';
+        document.getElementById('qExplanation').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        return;
+      }
+    }
+
+    const q = pool[currentIndex % pool.length];
+    document.getElementById('qCategory').textContent = q.category;
+    document.getElementById('qNumber').textContent = `${(currentIndex % pool.length) + 1} / ${pool.length}`;
+    document.getElementById('qExplanation').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'none';
+
+    // 유료 전용 문제 잠금 처리
+    if (q.isPro && !isUnlocked) {
+      document.getElementById('qText').textContent = "🔒 PRO 멤버십 전용 심화 기출문제입니다.";
+      document.getElementById('qFormula').style.display = 'none';
+      document.getElementById('answerArea').innerHTML = `
+        <p style="font-size:13px; color:#64748b; margin-bottom:14px;">내진설계, PSC, 교량공학 등 전체 기출문제와 해설을 보려면 PRO 패스를 활성화하세요.</p>
+        <button class="btn-primary" style="background:var(--pro-gold); color:#0f172a;" onclick="openPayModal()">PRO 패스 잠금 해제</button>
+      `;
+      return;
+    }
+
+    document.getElementById('qText').textContent = q.text;
+    const fBox = document.getElementById('qFormula');
+    if (q.formula) { fBox.style.display = 'block'; fBox.textContent = q.formula; }
+    else { fBox.style.display = 'none'; }
+
+    const area = document.getElementById('answerArea');
+    area.innerHTML = '';
+
+    if (currentMode === 'blank') {
+      area.innerHTML = `
+        <input type="text" id="blankInput" class="blank-input" placeholder="핵심 키워드를 입력하세요">
+        <button class="btn-primary" onclick="checkBlankAnswer(${q.id}, '${q.blankAnswer}')">정답 확인</button>
+      `;
+    } else {
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = `${idx + 1}. ${opt}`;
+        btn.onclick = () => checkChoiceAnswer(btn, idx === q.answer, q);
+        area.appendChild(btn);
+      });
+    }
+  }
+
+  function checkChoiceAnswer(btn, isCorrect, q) {
+    const buttons = document.querySelectorAll('.option-btn');
+    buttons.forEach((b, i) => {
+      b.disabled = true;
+      if (i === q.answer) b.classList.add('correct');
+    });
+    if (!isCorrect) {
+      btn.classList.add('wrong');
+      saveWrong(q.id);
+    }
+    showExplanation(q.explanation);
+  }
+
+  function checkBlankAnswer(qId, correctText) {
+    const val = document.getElementById('blankInput').value.trim();
+    const q = questions.find(item => item.id === qId);
+    if (!val) return;
+    if (val.replace(/\s/g, '').includes(correctText.replace(/\s/g, ''))) {
+      alert("정답입니다! 👏");
+    } else {
+      alert(`오답입니다. 정답은 [${correctText}] 입니다.`);
+      saveWrong(qId);
+    }
+    showExplanation(q.explanation);
+  }
+
+  function saveWrong(id) {
+    if (!wrongList.includes(id)) {
+      wrongList.push(id);
+      localStorage.setItem('wrongList', JSON.stringify(wrongList));
+    }
+  }
+
+  function showExplanation(text) {
+    const exp = document.getElementById('qExplanation');
+    exp.innerHTML = `<strong>💡 핵심 해설</strong><br>${text}`;
+    exp.style.display = 'block';
+    document.getElementById('nextBtn').style.display = 'block';
+  }
+
+  function nextQuestion() {
+    currentIndex++;
+    renderQuestion();
+  }
+
+  // 모달 & 권한 처리
+  function openPayModal() { document.getElementById('payModal').style.display = 'flex'; }
+  function closeModal(e, id) { if (e.target.id === id) document.getElementById(id).style.display = 'none'; }
+  
+  function selectPlan(el) {
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function completePurchase() {
+    userRole = 'pro';
+    localStorage.setItem('userRole', 'pro');
+    document.getElementById('payModal').style.display = 'none';
+    alert('PRO 멤버십 결제가 완료되었습니다! 모든 기능이 잠금 해제됩니다.');
+    updateUIByRole();
+  }
+
+  function verifyDevCode() {
+    const code = document.getElementById('devCodeInput').value.trim();
+    if (code === '1234' || code.toUpperCase() === 'DEV') {
+      userRole = 'dev';
+      localStorage.setItem('userRole', 'dev');
+      document.getElementById('devCodeInput').value = '';
+      document.getElementById('devModal').style.display = 'none';
+      updateUIByRole();
+    } else {
+      alert('인증 코드가 일치하지 않습니다.');
+    }
+  }
+
+  function resetToFree() {
+    userRole = 'free';
+    localStorage.setItem('userRole', 'free');
+    switchMode('choice');
+    updateUIByRole();
+  }
+
+  // 초기 실행
+  updateUIByRole();
+</script>
+</body>
+</html>
