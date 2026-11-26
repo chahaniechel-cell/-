@@ -406,5 +406,910 @@
   // 초기 실행
   updateUIByRole();
 </script>
+  <!-- === PRO AUTH & BOARD START === -->
+<style>
+  /* 모든 스타일을 #proApp_root 내부로 격리하여 기존 CSS 보호 */
+  #proApp_root, #proApp_root * {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 1. 전체 로그인 오버레이 */
+  #proApp_authOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: radial-gradient(circle at top right, #1e293b 0%, #0b1120 60%, #060913 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #f8fafc;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+  }
+  #proApp_authOverlay.proApp_hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .proApp_authCard {
+    width: 100%;
+    max-width: 390px;
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 20px;
+    padding: 32px 24px 28px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(12px);
+  }
+
+  .proApp_brand {
+    text-align: center;
+    margin-bottom: 26px;
+  }
+  .proApp_logoIcon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 12px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+  }
+  .proApp_brandTitle {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #ffffff;
+  }
+  .proApp_brandSub {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  /* 로그인/회원가입 탭 */
+  .proApp_tabs {
+    display: flex;
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+  .proApp_tabBtn {
+    flex: 1;
+    padding: 9px 0;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .proApp_tabBtn.proApp_active {
+    background: #1e293b;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+
+  .proApp_field {
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .proApp_label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+  }
+  .proApp_input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .proApp_input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+  .proApp_pwToggle {
+    position: absolute;
+    right: 12px;
+    top: 33px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .proApp_options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px 0 20px;
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .proApp_checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+  }
+  .proApp_checkboxLabel input {
+    accent-color: #3b82f6;
+    width: 15px;
+    height: 15px;
+  }
+
+  .proApp_primaryBtn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+  }
+  .proApp_primaryBtn:active {
+    transform: scale(0.98);
+  }
+  .proApp_msg {
+    margin-top: 12px;
+    font-size: 13px;
+    text-align: center;
+    min-height: 18px;
+    color: #f87171;
+  }
+  .proApp_msg.proApp_ok {
+    color: #4ade80;
+  }
+
+  /* 2. 로그인 후 우측 하단 플로팅 바 */
+  #proApp_floatingBar {
+    position: fixed;
+    right: 16px;
+    bottom: 18px;
+    z-index: 99990;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .proApp_fab {
+    padding: 11px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .proApp_fabBoard {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-color: rgba(96, 165, 250, 0.4);
+  }
+
+  /* 3. 회원 전용 게시판 모달 */
+  #proApp_boardModal {
+    position: fixed;
+    inset: 0;
+    z-index: 99995;
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    color: #f8fafc;
+  }
+  #proApp_boardModal.proApp_open {
+    display: flex;
+  }
+  .proApp_boardBox {
+    width: 100%;
+    max-width: 540px;
+    height: 86vh;
+    max-height: 760px;
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+  }
+
+  .proApp_boardHeader {
+    padding: 16px 18px;
+    background: #111827;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .proApp_boardTitle {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .proApp_userBadge {
+    font-size: 12px;
+    color: #93c5fd;
+    margin-left: 8px;
+    font-weight: 500;
+  }
+  .proApp_closeBtn {
+    background: #1e293b;
+    border: none;
+    color: #cbd5e1;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  /* 카테고리 필터 바 */
+  .proApp_catBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1e293b;
+    gap: 8px;
+    background: #0b1120;
+  }
+  .proApp_catList {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .proApp_catBtn {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .proApp_catBtn.proApp_active {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+  }
+  .proApp_writeBtn {
+    padding: 7px 13px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* 게시판 본문 영역 */
+  .proApp_boardBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+  }
+  .proApp_postCard {
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .proApp_postCard:hover {
+    border-color: #3b82f6;
+  }
+  .proApp_postTop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .proApp_badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+  }
+  .proApp_postTitle {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+  .proApp_postMeta {
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* 글쓰기 & 상세보기 */
+  .proApp_textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    background: #0b1120;
+    color: #f8fafc;
+    font-size: 14px;
+    resize: vertical;
+    outline: none;
+  }
+  .proApp_btnRow {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .proApp_subBtn {
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .proApp_dangerBtn {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+  }
+
+  /* 댓글 영역 */
+  .proApp_commentBox {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #1e293b;
+  }
+  .proApp_commentItem {
+    background: #111827;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .proApp_commentHead {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .proApp_commentForm {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+</style>
+
+<div id="proApp_root">
+  <!-- 1. 로그인 / 회원가입 화면 -->
+  <div id="proApp_authOverlay">
+    <div class="proApp_authCard">
+      <div class="proApp_brand">
+        <div class="proApp_logoIcon">P</div>
+        <h2 class="proApp_brandTitle">PRO WORKSPACE</h2>
+        <p class="proApp_brandSub">회원 전용 서비스 로그인</p>
+      </div>
+
+      <div class="proApp_tabs">
+        <button type="button" class="proApp_tabBtn proApp_active" id="proApp_tabLogin">로그인</button>
+        <button type="button" class="proApp_tabBtn" id="proApp_tabSignup">회원가입</button>
+      </div>
+
+      <form id="proApp_authForm">
+        <div class="proApp_field">
+          <label class="proApp_label" for="proApp_id">아이디</label>
+          <input type="text" id="proApp_id" class="proApp_input" placeholder="아이디를 입력하세요" required autocomplete="username" />
+        </div>
+
+        <div class="proApp_field" id="proApp_nickField" style="display:none;">
+          <label class="proApp_label" for="proApp_nick">닉네임</label>
+          <input type="text" id="proApp_nick" class="proApp_input" placeholder="게시판에 표시될 닉네임" />
+        </div>
+
+        <div class="proApp_field">
+          <label class="proApp_label" for="proApp_pw">비밀번호</label>
+          <input type="password" id="proApp_pw" class="proApp_input" placeholder="비밀번호를 입력하세요" required autocomplete="current-password" />
+          <button type="button" class="proApp_pwToggle" id="proApp_pwToggle">보기</button>
+        </div>
+
+        <div class="proApp_options" id="proApp_loginOptions">
+          <label class="proApp_checkboxLabel">
+            <input type="checkbox" id="proApp_keepLogin" checked />
+            <span>로그인 상태 유지</span>
+          </label>
+        </div>
+
+        <button type="submit" class="proApp_primaryBtn" id="proApp_submitBtn">로그인</button>
+        <div class="proApp_msg" id="proApp_authMsg"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. 로그인 후 우측 하단 플로팅 버튼 -->
+  <div id="proApp_floatingBar">
+    <button type="button" class="proApp_fab proApp_fabBoard" id="proApp_openBoardBtn">📋 게시판</button>
+    <button type="button" class="proApp_fab" id="proApp_logoutBtn">로그아웃</button>
+  </div>
+
+  <!-- 3. 회원 전용 게시판 모달 -->
+  <div id="proApp_boardModal">
+    <div class="proApp_boardBox">
+      <div class="proApp_boardHeader">
+        <div>
+          <span class="proApp_boardTitle">회원 게시판</span>
+          <span class="proApp_userBadge" id="proApp_currentUserBadge"></span>
+        </div>
+        <button type="button" class="proApp_closeBtn" id="proApp_closeBoardBtn">✕</button>
+      </div>
+
+      <div class="proApp_catBar" id="proApp_catBar">
+        <div class="proApp_catList">
+          <button type="button" class="proApp_catBtn proApp_active" data-cat="전체">전체</button>
+          <button type="button" class="proApp_catBtn" data-cat="질문">질문</button>
+          <button type="button" class="proApp_catBtn" data-cat="정보공유">정보공유</button>
+          <button type="button" class="proApp_catBtn" data-cat="자유">자유</button>
+        </div>
+        <button type="button" class="proApp_writeBtn" id="proApp_newPostBtn">+ 글쓰기</button>
+      </div>
+
+      <div class="proApp_boardBody" id="proApp_boardBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const KEYS = {
+    USERS: "proApp_users_v1",
+    SESSION: "proApp_session_v1",
+    POSTS: "proApp_posts_v1"
+  };
+
+  let authMode = "login"; // 'login' | 'signup'
+  let currentCat = "전체";
+  let currentUser = null;
+  let editingPostId = null;
+
+  // 요소 참조
+  const el = {
+    overlay: document.getElementById("proApp_authOverlay"),
+    tabLogin: document.getElementById("proApp_tabLogin"),
+    tabSignup: document.getElementById("proApp_tabSignup"),
+    form: document.getElementById("proApp_authForm"),
+    id: document.getElementById("proApp_id"),
+    nickField: document.getElementById("proApp_nickField"),
+    nick: document.getElementById("proApp_nick"),
+    pw: document.getElementById("proApp_pw"),
+    pwToggle: document.getElementById("proApp_pwToggle"),
+    keepLogin: document.getElementById("proApp_keepLogin"),
+    loginOptions: document.getElementById("proApp_loginOptions"),
+    submitBtn: document.getElementById("proApp_submitBtn"),
+    msg: document.getElementById("proApp_authMsg"),
+    floatingBar: document.getElementById("proApp_floatingBar"),
+    openBoardBtn: document.getElementById("proApp_openBoardBtn"),
+    logoutBtn: document.getElementById("proApp_logoutBtn"),
+    boardModal: document.getElementById("proApp_boardModal"),
+    closeBoardBtn: document.getElementById("proApp_closeBoardBtn"),
+    userBadge: document.getElementById("proApp_currentUserBadge"),
+    catBar: document.getElementById("proApp_catBar"),
+    newPostBtn: document.getElementById("proApp_newPostBtn"),
+    boardBody: document.getElementById("proApp_boardBody")
+  };
+
+  // XSS 방지용 이스케이프
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function nowText() {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${mm}.${dd} ${hh}:${mi}`;
+  }
+
+  // 데이터 로드/저장
+  function getUsers() {
+    return JSON.parse(localStorage.getItem(KEYS.USERS) || "[]");
+  }
+  function saveUsers(users) {
+    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+  }
+  function getPosts() {
+    const saved = localStorage.getItem(KEYS.POSTS);
+    if (saved) return JSON.parse(saved);
+    const seed = [
+      {
+        id: "seed_1",
+        category: "정보공유",
+        title: "회원 전용 게시판 이용 안내",
+        content: "질문, 정보공유, 자유 카테고리를 선택해 글을 작성하고 댓글로 소통할 수 있습니다.",
+        authorId: "admin",
+        authorNick: "관리자",
+        createdAt: "공지",
+        comments: []
+      },
+      {
+        id: "seed_2",
+        category: "질문",
+        title: "처음 사용하는데 기능은 어디서 보나요?",
+        content: "로그인 후 우측 하단의 게시판 버튼으로 언제든 열 수 있습니다.",
+        authorId: "sample",
+        authorNick: "테스트회원",
+        createdAt: "오늘",
+        comments: [
+          { id: "c_1", authorId: "admin", authorNick: "관리자", text: "맞습니다! 기존 화면과 독립적으로 작동합니다.", createdAt: "오늘" }
+        ]
+      },
+      {
+        id: "seed_3",
+        category: "자유",
+        title: "다크 네이비 테마 깔끔하네요",
+        content: "눈이 편해서 오래 보기 좋습니다.",
+        authorId: "sample",
+        authorNick: "테스트회원",
+        createdAt: "오늘",
+        comments: []
+      }
+    ];
+    localStorage.setItem(KEYS.POSTS, JSON.stringify(seed));
+    return seed;
+  }
+  function savePosts(posts) {
+    localStorage.setItem(KEYS.POSTS, JSON.stringify(posts));
+  }
+
+  // 세션 확인
+  function loadSession() {
+    const raw = localStorage.getItem(KEYS.SESSION) || sessionStorage.getItem(KEYS.SESSION);
+    if (raw) {
+      currentUser = JSON.parse(raw);
+      enterApp();
+    }
+  }
+
+  function enterApp() {
+    el.overlay.classList.add("proApp_hidden");
+    el.floatingBar.style.display = "flex";
+    el.userBadge.textContent = `${currentUser.nick}님`;
+  }
+
+  function logout() {
+    localStorage.removeItem(KEYS.SESSION);
+    sessionStorage.removeItem(KEYS.SESSION);
+    currentUser = null;
+    el.boardModal.classList.remove("proApp_open");
+    el.floatingBar.style.display = "none";
+    el.overlay.classList.remove("proApp_hidden");
+    el.pw.value = "";
+    el.msg.textContent = "";
+  }
+
+  // 탭 전환
+  function setAuthMode(mode) {
+    authMode = mode;
+    el.msg.textContent = "";
+    el.msg.className = "proApp_msg";
+    if (mode === "login") {
+      el.tabLogin.classList.add("proApp_active");
+      el.tabSignup.classList.remove("proApp_active");
+      el.nickField.style.display = "none";
+      el.loginOptions.style.display = "flex";
+      el.submitBtn.textContent = "로그인";
+    } else {
+      el.tabSignup.classList.add("proApp_active");
+      el.tabLogin.classList.remove("proApp_active");
+      el.nickField.style.display = "block";
+      el.loginOptions.style.display = "none";
+      el.submitBtn.textContent = "회원가입 완료";
+    }
+  }
+
+  el.tabLogin.addEventListener("click", () => setAuthMode("login"));
+  el.tabSignup.addEventListener("click", () => setAuthMode("signup"));
+
+  // 비밀번호 보기 토글
+  el.pwToggle.addEventListener("click", () => {
+    const isPw = el.pw.type === "password";
+    el.pw.type = isPw ? "text" : "password";
+    el.pwToggle.textContent = isPw ? "숨김" : "보기";
+  });
+
+  // 로그인 / 회원가입 제출
+  el.form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = el.id.value.trim();
+    const pw = el.pw.value.trim();
+    const users = getUsers();
+
+    if (authMode === "signup") {
+      const nick = el.nick.value.trim() || id;
+      if (users.some(u => u.id === id)) {
+        el.msg.textContent = "이미 사용 중인 아이디입니다.";
+        return;
+      }
+      users.push({ id, pw, nick });
+      saveUsers(users);
+      el.msg.className = "proApp_msg proApp_ok";
+      el.msg.textContent = "가입 완료! 이제 로그인해 주세요.";
+      setAuthMode("login");
+      el.id.value = id;
+      el.pw.value = "";
+      return;
+    }
+
+    const found = users.find(u => u.id === id && u.pw === pw);
+    if (!found) {
+      el.msg.textContent = "아이디 또는 비밀번호가 일치하지 않습니다.";
+      return;
+    }
+
+    el.submitBtn.textContent = "로그인 중...";
+    setTimeout(() => {
+      currentUser = { id: found.id, nick: found.nick };
+      const storage = el.keepLogin.checked ? localStorage : sessionStorage;
+      storage.setItem(KEYS.SESSION, JSON.stringify(currentUser));
+      el.submitBtn.textContent = "로그인";
+      enterApp();
+    }, 300);
+  });
+
+  el.logoutBtn.addEventListener("click", logout);
+
+  // 게시판 열기 / 닫기
+  el.openBoardBtn.addEventListener("click", () => {
+    el.boardModal.classList.add("proApp_open");
+    renderList();
+  });
+  el.closeBoardBtn.addEventListener("click", () => {
+    el.boardModal.classList.remove("proApp_open");
+  });
+
+  // 카테고리 클릭
+  el.catBar.querySelectorAll(".proApp_catBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      el.catBar.querySelectorAll(".proApp_catBtn").forEach(b => b.classList.remove("proApp_active"));
+      btn.classList.add("proApp_active");
+      currentCat = btn.dataset.cat;
+      renderList();
+    });
+  });
+
+  el.newPostBtn.addEventListener("click", () => {
+    editingPostId = null;
+    renderEditor();
+  });
+
+  // 1) 게시글 목록 렌더링
+  function renderList() {
+    el.catBar.style.display = "flex";
+    const posts = getPosts();
+    const filtered = currentCat === "전체" ? posts : posts.filter(p => p.category === currentCat);
+
+    if (filtered.length === 0) {
+      el.boardBody.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:48px 0;">등록된 게시글이 없습니다.</div>`;
+      return;
+    }
+
+    el.boardBody.innerHTML = filtered.map(p => `
+      <div class="proApp_postCard" data-id="${esc(p.id)}">
+        <div class="proApp_postTop">
+          <span class="proApp_badge">${esc(p.category)}</span>
+          <h4 class="proApp_postTitle">${esc(p.title)}</h4>
+        </div>
+        <div class="proApp_postMeta">
+          <span>${esc(p.authorNick)} · 댓글 ${(p.comments || []).length}</span>
+          <span>${esc(p.createdAt)}</span>
+        </div>
+      </div>
+    `).join("");
+
+    el.boardBody.querySelectorAll(".proApp_postCard").forEach(card => {
+      card.addEventListener("click", () => renderDetail(card.dataset.id));
+    });
+  }
+
+  // 2) 글쓰기 / 수정 화면 렌더링
+  function renderEditor(post = null) {
+    el.catBar.style.display = "none";
+    el.boardBody.innerHTML = `
+      <div class="proApp_field">
+        <label class="proApp_label">카테고리</label>
+        <select id="proApp_postCat" class="proApp_input">
+          <option value="질문" ${post && post.category === "질문" ? "selected" : ""}>질문</option>
+          <option value="정보공유" ${post && post.category === "정보공유" ? "selected" : ""}>정보공유</option>
+          <option value="자유" ${post && post.category === "자유" ? "selected" : ""}>자유</option>
+        </select>
+      </div>
+      <div class="proApp_field">
+        <label class="proApp_label">제목</label>
+        <input type="text" id="proApp_postTitleInput" class="proApp_input" placeholder="제목을 입력하세요" value="${post ? esc(post.title) : ""}" />
+      </div>
+      <div class="proApp_field">
+        <label class="proApp_label">내용</label>
+        <textarea id="proApp_postContentInput" class="proApp_textarea" placeholder="내용을 입력하세요">${post ? esc(post.content) : ""}</textarea>
+      </div>
+      <div class="proApp_btnRow">
+        <button type="button" class="proApp_primaryBtn" id="proApp_savePostBtn">${post ? "수정 저장" : "게시글 등록"}</button>
+        <button type="button" class="proApp_subBtn" id="proApp_cancelPostBtn">취소</button>
+      </div>
+    `;
+
+    document.getElementById("proApp_cancelPostBtn").addEventListener("click", renderList);
+    document.getElementById("proApp_savePostBtn").addEventListener("click", () => {
+      const category = document.getElementById("proApp_postCat").value;
+      const title = document.getElementById("proApp_postTitleInput").value.trim();
+      const content = document.getElementById("proApp_postContentInput").value.trim();
+      if (!title || !content) return alert("제목과 내용을 모두 입력해 주세요.");
+
+      const posts = getPosts();
+      if (editingPostId) {
+        const idx = posts.findIndex(p => p.id === editingPostId);
+        if (idx > -1) {
+          posts[idx].category = category;
+          posts[idx].title = title;
+          posts[idx].content = content;
+        }
+      } else {
+        posts.unshift({
+          id: "post_" + Date.now(),
+          category,
+          title,
+          content,
+          authorId: currentUser.id,
+          authorNick: currentUser.nick,
+          createdAt: nowText(),
+          comments: []
+        });
+      }
+      savePosts(posts);
+      renderList();
+    });
+  }
+
+  // 3) 게시글 상세보기 + 댓글
+  function renderDetail(postId) {
+    el.catBar.style.display = "none";
+    const posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return renderList();
+
+    const isOwner = currentUser && post.authorId === currentUser.id;
+    const commentsHtml = (post.comments || []).map(c => `
+      <div class="proApp_commentItem">
+        <div class="proApp_commentHead">
+          <span><strong>${esc(c.authorNick)}</strong> · ${esc(c.createdAt)}</span>
+          ${currentUser && c.authorId === currentUser.id
+            ? `<button type="button" class="proApp_delComment" data-cid="${esc(c.id)}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:11px;">삭제</button>`
+            : ""}
+        </div>
+        <div style="color:#e2e8f0;white-space:pre-wrap;">${esc(c.text)}</div>
+      </div>
+    `).join("");
+
+    el.boardBody.innerHTML = `
+      <button type="button" class="proApp_subBtn" id="proApp_backListBtn" style="margin-bottom:14px;">← 목록으로</button>
+      <div class="proApp_postTop">
+        <span class="proApp_badge">${esc(post.category)}</span>
+        <h3 style="margin:0;font-size:18px;color:#ffffff;">${esc(post.title)}</h3>
+      </div>
+      <div class="proApp_postMeta" style="margin:8px 0 16px;padding-bottom:12px;border-bottom:1px solid #1e293b;">
+        <span>작성자: ${esc(post.authorNick)}</span>
+        <span>${esc(post.createdAt)}</span>
+      </div>
+      <div style="font-size:14px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;min-height:90px;">${esc(post.content)}</div>
+
+      ${isOwner ? `
+        <div class="proApp_btnRow">
+          <button type="button" class="proApp_subBtn" id="proApp_editPostBtn">수정</button>
+          <button type="button" class="proApp_subBtn proApp_dangerBtn" id="proApp_deletePostBtn">삭제</button>
+        </div>
+      ` : ""}
+
+      <div class="proApp_commentBox">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#cbd5e1;">댓글 ${(post.comments || []).length}</div>
+        ${commentsHtml || `<div style="font-size:12px;color:#64748b;margin-bottom:10px;">첫 댓글을 남겨보세요.</div>`}
+        <div class="proApp_commentForm">
+          <input type="text" id="proApp_commentInput" class="proApp_input" placeholder="댓글을 입력하세요" />
+          <button type="button" class="proApp_writeBtn" id="proApp_addCommentBtn">등록</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("proApp_backListBtn").addEventListener("click", renderList);
+
+    if (isOwner) {
+      document.getElementById("proApp_editPostBtn").addEventListener("click", () => {
+        editingPostId = post.id;
+        renderEditor(post);
+      });
+      document.getElementById("proApp_deletePostBtn").addEventListener("click", () => {
+        if (!confirm("이 게시글을 삭제할까요?")) return;
+        savePosts(posts.filter(p => p.id !== post.id));
+        renderList();
+      });
+    }
+
+    document.getElementById("proApp_addCommentBtn").addEventListener("click", () => {
+      const input = document.getElementById("proApp_commentInput");
+      const text = input.value.trim();
+      if (!text) return;
+      post.comments = post.comments || [];
+      post.comments.push({
+        id: "c_" + Date.now(),
+        authorId: currentUser.id,
+        authorNick: currentUser.nick,
+        text,
+        createdAt: nowText()
+      });
+      savePosts(posts);
+      renderDetail(post.id);
+    });
+
+    el.boardBody.querySelectorAll(".proApp_delComment").forEach(btn => {
+      btn.addEventListener("click", () => {
+        post.comments = post.comments.filter(c => c.id !== btn.dataset.cid);
+        savePosts(posts);
+        renderDetail(post.id);
+      });
+    });
+  }
+
+  loadSession();
+})();
+</script>
+<!-- === PRO AUTH & BOARD END === -->
 </body>
 </html>
